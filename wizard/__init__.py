@@ -1,0 +1,1 @@
+from . import warehouse_analysis_wizard

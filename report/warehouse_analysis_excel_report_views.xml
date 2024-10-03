@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_warehouse_analysis_excel_report" model="ir.actions.report">
+        <field name="name">Warehouse Analysis Report</field>
+        <field name="model">stock.report</field>
+        <field name="report_type">xlsx</field>
+        <field name="report_name">warehouse_analysis_report.warehouse_analysis_template</field>
+        <field name="report_file">warehouse_analysis_report.warehouse_analysis_template</field>
+        <field name="print_report_name"> Warehouse Analysis Excel Report</field>
+        <field name="binding_model_id" eval="False"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
+
