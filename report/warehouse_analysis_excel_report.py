@@ -16,26 +16,36 @@ class WarehouseAnalysisReport(models.AbstractModel):
             ('date_done', '>=', start_date),
             ('date_done', '<=', end_date)
         ])
+        grouped_data = defaultdict(lambda: {
+            'company_name': '',
+            'partners': [],
+            'total_delay': 0,
+            'total_cycle_time': 0,
+            'total_product_qty': 0,
+            'total_count': 0
+        })
 
-        print(f"Fetched {len(reports)} reports between {start_date} and {end_date}")
-        grouped_data = defaultdict(lambda: {'partner_name': '', 'delay': 0, 'cycle_time': 0, 'product_qty': 0, 'count': 0})
         for report in reports:
-            partner_id = report.partner_id.id if report.partner_id else 'No Partner'
+            company_id = report.company_id.id if report.company_id else 'No Company'
+            company_name = report.company_id.name if report.company_id else 'No Company'
+            
             partner_name = report.partner_id.name if report.partner_id else 'No Partner'
-            grouped_data[partner_id]['partner_name'] = partner_name
-            grouped_data[partner_id]['delay'] += report.delay or 0
-            grouped_data[partner_id]['cycle_time'] += report.cycle_time or 0
-            grouped_data[partner_id]['product_qty'] += report.product_qty or 0
-            grouped_data[partner_id]['count'] += 1
-        all_partners = self.env['res.partner'].search([])
-        for partner in all_partners:
-            if partner.id not in grouped_data:
-                grouped_data[partner.id] = {
-                    'partner_name': partner.name,
-                    'delay': 0,
-                    'cycle_time': 0,
-                    'product_qty': 0,
-                    'count': 0
+            grouped_data[company_id]['company_name'] = company_name
+            grouped_data[company_id]['partners'].append(partner_name)
+            grouped_data[company_id]['total_delay'] += report.delay or 0
+            grouped_data[company_id]['total_cycle_time'] += report.cycle_time or 0
+            grouped_data[company_id]['total_product_qty'] += report.product_qty or 0
+            grouped_data[company_id]['total_count'] += 1
+        all_companies = self.env['res.company'].search([])
+        for company in all_companies:
+            if company.id not in grouped_data:
+                grouped_data[company.id] = {
+                    'company_name': company.name,
+                    'partners': [],
+                    'total_delay': 0,
+                    'total_cycle_time': 0,
+                    'total_product_qty': 0,
+                    'total_count': 0
                 }
         worksheet = workbook.add_worksheet('Warehouse Analysis')
         main_heading_format = workbook.add_format({
@@ -68,21 +78,22 @@ class WarehouseAnalysisReport(models.AbstractModel):
             'valign': 'vcenter',
             'bg_color': '#DDEBF7'
         })
-        worksheet.merge_range('A1:D1', 'Warehouse Analysis', main_heading_format)
+        worksheet.merge_range('A1:E1', 'Warehouse Analysis', main_heading_format)
         headers = [
-            "Partner", "Total Delay (Days)", "Total Cycle Time (Days)", "Total Product Quantity"
+            "Company", "Partners", "Total Delay (Days)", "Total Cycle Time (Days)", "Total Product Quantity"
         ]
         worksheet.write_row(1, 0, headers, sub_heading_format)
         col_widths = [len(header) for header in headers]
         row_idx = 2
-        for partner_id, data in grouped_data.items():
-            average_delay = data['delay'] / data['count'] if data['count'] else 0
-            average_cycle_time = data['cycle_time'] / data['count'] if data['count'] else 0
+        for company_id, data in grouped_data.items():
+            partners_list = "\n".join(set(data['partners']))
+
             values = [
-                data['partner_name'],
-                f"{average_delay:.2f}",
-                f"{average_cycle_time:.2f}",
-                str(data['product_qty'])
+                data['company_name'],
+                partners_list,
+                f"{data['total_delay']:.2f}",
+                f"{data['total_cycle_time']:.2f}",
+                str(data['total_product_qty'])
             ]
             row_format_to_use = row_format if row_idx % 2 == 0 else striped_row_format
             worksheet.write_row(row_idx, 0, values, row_format_to_use)
